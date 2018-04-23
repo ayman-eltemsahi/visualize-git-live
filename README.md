@@ -1,4 +1,4 @@
-# VisGitGraph
+# Visualize-git-live
 
 VisGitGraph allows you to display the internals of the git graph in a visual way in the browser.
 

@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Ayman-Mohamed/visgitgraph.git"
+    "url": "git+https://github.com/Ayman-Mohamed/visualize-git-live.git"
   },
   "keywords": [
     "git",
@@ -26,5 +26,5 @@
   },
   "author": "Ayman Mohamed",
   "license": "MIT",
-  "homepage": "https://github.com/Ayman-Mohamed/visgitgraph#readme"
+  "homepage": "https://github.com/Ayman-Mohamed/visualize-git-live#readme"
 }
