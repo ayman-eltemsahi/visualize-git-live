@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="vis.min.css" />
+    <link rel="stylesheet" href="bootstrap/css/bootstrap.min.css" />
+    <title>Git Graph</title>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.4.2/react.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/15.4.2/react-dom.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.21.1/babel.min.js"></script>
+
+</head>
+
+<body>
+    <div class="left-panel">
+    </div>
+
+    <div class="right-panel">
+        <div id="graph"></div>
+    </div>
+
+    <style>
+        body {
+            background: #ccc;
+        }
+
+        .left-panel {
+            border: 1px solid #fff;
+            height: 125px;
+            /* display: none; */
+        }
+
+        .checkbox {
+            display: inline-block;
+            transform: scale(1.5);
+            margin-left: 15px;
+            margin-right: 50px;
+        }
+
+        .btns button {
+            margin-left: 10px;
+            margin-right: 10px;
+        }
+    </style>
+    <script type="text/javascript" src="jquery.min.js"></script>
+    <script type="text/javascript" src="vis.min.js"></script>
+    <script type="text/javascript" src="helper.js"></script>
+    <script type="text/javascript" src="graph.js"></script>
+    <script type="text/javascript" src="main.js"></script>
+    <script type="text/babel" src='react-main.js'></script>
+</body>
+
+</html>

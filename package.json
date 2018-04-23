@@ -1,0 +1,30 @@
+{
+  "name": "visgitgraph",
+  "version": "1.0.0",
+  "description": "Visualize the internal graph of git source control.",
+  "main": "index.js",
+  "scripts": {
+    "start": "set DEBUG=tree,tree:*,socket, log,watch, watch:error & node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ayman-Mohamed/visgitgraph.git"
+  },
+  "keywords": [
+    "git",
+    "graph",
+    "source",
+    "control",
+    "visualize"
+  ],
+  "dependencies": {
+    "express": "4.15.3",
+    "ip": "1.1.5",
+    "opn": "5.2.0",
+    "websocket": "1.0.25"
+  },
+  "author": "Ayman Mohamed",
+  "license": "MIT",
+  "homepage": "https://github.com/Ayman-Mohamed/visgitgraph#readme"
+}
