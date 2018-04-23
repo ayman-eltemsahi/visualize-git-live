@@ -15,7 +15,7 @@ The nodejs server also watches for file changes on the directory and updates the
 
 ### installation
 ```sh
-$ clone https://github.com/Ayman-Mohamed/visgitgraph.git
+$ clone https://github.com/ayman-eltemsahi/visualize-git-live.git
 $ npm install
 ```
 
