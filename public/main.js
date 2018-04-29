@@ -178,7 +178,14 @@ function get(url) {
 }
 
 function showAll() {
-    nodes.filter(node => visibleType[node.type]).forEach(addNode);
+    nodes.forEach(node => {
+        if(visibleType[node.type]) {
+            addNode(node);
+        } else {
+            removeNode(node);
+        }
+    });
+    // nodes.filter(node => visibleType[node.type]).forEach(addNode);
 }
 
 function showHideType(visible) {
