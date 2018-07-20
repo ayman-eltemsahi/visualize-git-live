@@ -1,16 +1,16 @@
 // TODO : move inside the iife
 var ws, network, nodesDataSet, edgesDataSet, nodes, edges, selectedNode, nodesMap = new Map();
 
-var lastOp = () => showAll();// showReachable(7);
+var lastOp = () => showAll();
 
-var visibleType = 
-    {
-        blob   :  true,
-        tree   :  true,
-        commit :  true,
-        branch :  true,
-        head   :  true
-    };
+var visibleType =
+{
+    blob: true,
+    tree: true,
+    commit: true,
+    branch: true,
+    head: true
+};
 
 function getTree(visible) {
     visibleType = visible;
@@ -24,7 +24,7 @@ function getTree(visible) {
         .then(data => {
             console.log(data);
 
-            if (data.error) {
+            if(data.error) {
                 alert(data.error);
                 return;
             }
@@ -38,13 +38,13 @@ function getTree(visible) {
             });
 
             edges.forEach(processEdge);
-            
+
             let improvedLayout = nodes.length < 150;
-            
-            
+
+
             nodesDataSet = new vis.DataSet(nodes.filter(x => visibleType[x.type]));
             edgesDataSet = new vis.DataSet(edges);
-            
+
             let head = nodes.find(x => x.id === 'HEAD');
             selectedNode = head ? "HEAD" : "master";
             lastOp();
@@ -67,10 +67,10 @@ function getTree(visible) {
 
             network = new vis.Network(container, data, options);
 
-            network.on("doubleClick", function (params) {
+            network.on("doubleClick", function(params) {
                 var node = params.nodes[0];
 
-                if (!node) return;
+                if(!node) return;
                 get('/nodedata/' + node)
                     .then(node => {
                         console.log(node);
@@ -78,10 +78,10 @@ function getTree(visible) {
                     });
             });
 
-            network.on("click", function (params) {
+            network.on("click", function(params) {
                 var node = params.nodes[0];
 
-                if (!node) return;
+                if(!node) return;
                 selectedNode = node;
             });
         });
@@ -91,14 +91,14 @@ function getTree(visible) {
 
 function openWSConnection() {
     ws = new WebSocket(`ws://${window.location.host}`);
-    ws.onmessage = function (event) {
+    ws.onmessage = function(event) {
         let results = JSON.parse(event.data);
 
-        if (!Array.isArray(results)) results = [results];
+        if(!Array.isArray(results)) results = [results];
 
         results.forEach(res => {
             let type = res.type;
-            switch (type) {
+            switch(type) {
                 case 'addnode':
                     addNode(res.data);
                     addOriginalNode(res.data);
@@ -123,7 +123,7 @@ function openWSConnection() {
 function addNode(data) {
     processNode(data);
     log('addNode : ', data);
-    if (isNodeChanged(data)) nodesDataSet.update(data);
+    if(isNodeChanged(data)) nodesDataSet.update(data);
 }
 
 function removeNode(data) {
@@ -145,7 +145,7 @@ function removeEdge(data) {
 
 function addOriginalNode(data) {
     let index = nodes.findIndex(node => node.id == data.id);
-    if (index === -1) {
+    if(index === -1) {
         nodes.push(data);
         nodesMap.set(data.id, data);
     } else {
@@ -172,7 +172,7 @@ function removeOriginalEdge(data) {
 }
 
 function get(url) {
-    return new Promise(function (resolve, reject) {
+    return new Promise(function(resolve, reject) {
         $.ajax(url).done(resolve).catch(reject);
     });
 }
@@ -200,6 +200,6 @@ function log(a, b) {
 
 function isNodeChanged(node) {
     let orig = nodesMap.get(node.id);
-    if (!orig) return true;
+    if(!orig) return true;
     return node.type === orig.type && node.label === orig.label;
 }
