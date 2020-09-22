@@ -1,5 +1,3 @@
-'use strict';
-
 const tree = require('./tree');
 const blob = require('./blob');
 const commit = require('./commit');
@@ -17,5 +15,5 @@ module.exports = {
   parse,
   parse_tree: tree.parse,
   parse_blob: blob.parse,
-  parse_commit: commit.parse
-}
+  parse_commit: commit.parse,
+};

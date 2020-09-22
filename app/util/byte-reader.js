@@ -1,4 +1,4 @@
-/* eslint no-bitwise: 0 */
+/* eslint no-bitwise: off */
 
 // const logDebug = require('debug')('log');
 // const errorDebug = require('debug')('error');

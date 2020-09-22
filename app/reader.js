@@ -1,18 +1,17 @@
-'use strict';
-
-const pfs = require('./pfs');
 const fs = require('fs');
 const debug = require('debug');
+const pfs = require('./pfs');
 const TreeNode = require('./treenode');
 const helper = require('./helper');
 const changeWatcher = require('./change-watcher');
 const packReader = require('./pack-reader');
 const C = require('./constants');
+const treeModule = require('./tree');
 
 let tree;
 
 function getTree(dir) {
-  tree = require('./tree').getInstance();
+  tree = treeModule.getInstance();
 
   const headNode = new TreeNode(dir, 'HEAD', C.HEAD);
   tree.set('HEAD', headNode);
@@ -22,11 +21,11 @@ function getTree(dir) {
     .then(() => readPackedRefs(dir))
     .then(() => readRefs(dir))
     .then(() => readHead(dir))
-    .then(() => tree)   /* return the tree */
+    .then(() => tree) // return the tree
 
     .catch(err => {
       debug('tree:error:getTree')(err);
-      throw err;  // propagate the error to the caller
+      throw err; // propagate the error to the caller
     });
 }
 
@@ -49,45 +48,32 @@ function readObjectsFolder(dir) {
 
 function readSingleObjectsFolder(dir, folderName /* first two letters of the sha */) {
   return fs.promises.readdir(`${dir}/objects/${folderName}`)
-    .then(restOfShas /* string[] */ => {
-      return restOfShas.map(restOfSha => parseFile(`${dir}/objects/${folderName}`, folderName + restOfSha));
-    })
+    .then(restOfShas /* string[] */ => restOfShas.map(restOfSha => parseFile(`${dir}/objects/${folderName}`, folderName + restOfSha)))
     .then(_all => Promise.all(_all));
 }
 
 function readRefs(dir) {
   return fs.promises.readdir(`${dir}/refs/heads`)
-    .then(refFiles => {
-      return refFiles.map(file =>
-        (
-          fs.promises.readFile(`${dir}/refs/heads/${file}`)
-            .then(data => makeBranchNode(dir, data, file))
-            .catch(debug('tree:error:readRefs:inside'))
-        )
-      )
-    })
+    .then(refFiles => refFiles.map(file => (
+      fs.promises.readFile(`${dir}/refs/heads/${file}`)
+        .then(data => makeBranchNode(dir, data, file))
+        .catch(debug('tree:error:readRefs:inside'))
+    )))
     .then(_all => Promise.all(_all))
     .catch(debug('tree:error:readRefs'));
 }
 
 function readPackedRefs(dir) {
   return pfs.exists(`${dir}/packed-refs`)
-    .then(exists => {
-      if (exists) {
-        return fs.promises.readFile(`${dir}/packed-refs`);
-      } else {
-        return '';
-      }
-    })
+    .then(exists => (exists ? fs.promises.readFile(`${dir}/packed-refs`) : ''))
     .then(data => data.toString())
     .then(data => {
-
       data.split('\n')
         .filter(line => line && !line.startsWith('#'))
-        .filter(line => line.indexOf('tag') == -1 && line.indexOf('remote') == -1)
+        .filter(line => line.indexOf('tag') === -1 && line.indexOf('remote') === -1)
         .forEach(line => {
           //  58defe8f293146c15fb99333f0561bf627aab1d6 refs/heads/master
-          let [sha, loc] = line.trim().split(' ');
+          const [sha, loc] = line.trim().split(' ');
 
           if (loc) {
             const name = helper.lastAfterSplit(loc, '/');
@@ -101,7 +87,6 @@ function readPackedRefs(dir) {
 function readHead(dir) {
   return fs.promises.readFile(`${dir}/HEAD`)
     .then(head => {
-
       const headNode = tree.get('HEAD');
       const sha = helper.getNodeWhereHeadPoints(head);
       const node = tree.get(sha);
@@ -111,7 +96,6 @@ function readHead(dir) {
     })
     .catch(debug('tree:error:readHead'));
 }
-
 
 function parseFile(dir, sha) {
   let node = tree.get(sha);
@@ -125,37 +109,23 @@ function parseFile(dir, sha) {
 }
 
 function readPacks(dir) {
-
   // the packs info file
-  let info = pfs.exists(`${dir}/objects/info/packs`)
-    .then(exists => {
-      if (exists) {
-        return fs.promises.readFile(`${dir}/objects/info/packs`);
-      } else {
-        return '';
-      }
-    })
+  const info = pfs.exists(`${dir}/objects/info/packs`)
+    .then(exists => (exists ? fs.promises.readFile(`${dir}/objects/info/packs`) : ''))
     .then(data => data.toString().split('\n'));
 
   // sometimes, the pack is not registered in the info file
   const files = fs.promises.readdir(`${dir}/objects/pack`)
-    .then(files => files.map(helper.removeExtension));
-
+    .then(result => result.map(helper.removeExtension));
 
   return Promise.all([info, files])
     .then(res => {
-      let all = [];
+      const all = [];
       all.push(...res[0].filter(x => x));
       all.push(...res[1].filter(x => x));
 
-      return all.map(file => {
-        if (file.startsWith("P ") || file.startsWith("p ")) {
-          file = file.substr(2).trim();
-        }
-        return file;
-      })
+      return all.map(file => (file.toLocaleLowerCase().startsWith('p ') ? file.substr(2).trim() : file))
         .map(helper.removeExtension);
-
     })
     .then(helper.removeDuplicates)
     .then(allPacks => allPacks.map(file => readSinglePack(dir, file)))
@@ -165,38 +135,30 @@ function readPacks(dir) {
 function readSinglePack(dir, file) {
   if (file.endsWith('.pack')) file = file.substr(0, file.length - 5);
 
-  if (!file) return
+  if (!file) return;
 
-  return packReader
-    .read(`${dir}/objects/pack/${file}`)
-    .then(allData => {
+  return packReader.read(`${dir}/objects/pack/${file}`)
+    .then(allData => allData.map(data => {
+      if (!data) return;
 
-      return allData.map(data => {
+      if (!data.data) {
+        debug('tree:data.data')(data);
+      }
 
-        if (!data) return;
+      let node = tree.get(data.sha);
+      if (!node) {
+        node = new TreeNode(dir, data.sha, data.type, data.data);
+        tree.set(data.sha, node);
+      } else {
+        node.patch(dir, data.sha, data.type, data.data);
+      }
 
-        if (!data.data) {
-          debug('tree:data.data')(data);
-        }
-
-        let node = tree.get(data.sha);
-        if (!node) {
-          node = new TreeNode(dir, data.sha, data.type, data.data);
-          tree.set(data.sha, node);
-        } else {
-          node.patch(dir, data.sha, data.type, data.data);
-        }
-
-        return node.explore(true /* isPack */);
-      });
-    })
+      return node.explore(true /* isPack */);
+    }))
     .then(_all => Promise.all(_all));
 }
 
-
 module.exports = {
   getTree,
-  setupWatcher: function (dir) {
-    changeWatcher.setupListeners(dir);
-  }
-}
+  setupWatcher: dir => changeWatcher.setupListeners(dir),
+};

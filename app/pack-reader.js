@@ -1,9 +1,10 @@
+/* eslint no-bitwise: off */
 // https://github.com/git/git/blob/master/Documentation/technical/pack-format.txt
 
-const byteReader = require('./util/byte-reader');
 const { readFile } = require('fs').promises;
-const zipped = require('./zipped');
 const debug = require('debug');
+const zipped = require('./zipped');
+const byteReader = require('./util/byte-reader');
 
 const config = require('../config');
 const C = require('./constants');
@@ -11,7 +12,6 @@ const C = require('./constants');
 function readPackIdx(path) {
   return readFile(`${path}.idx`)
     .then(data => {
-
       const mem = byteReader.getReader(data);
 
       // A 4-byte magic number \377tOc which is an unreasonable fanout[0] value.
@@ -61,11 +61,9 @@ function readPackIdx(path) {
     });
 }
 
-
 function readPack(path, objects) {
   return readFile(`${path}.pack`)
     .then(data => {
-
       const mem = byteReader.getReader(data);
 
       // 4-byte signature:
@@ -83,10 +81,10 @@ function readPack(path, objects) {
         throw new Error('TOO_MANY_OBJECTS');
       }
 
-      const unzip_promises = [];
+      const unzipPromises = [];
 
-      for (let obj of objects) {
-        const offset = obj.offset;
+      objects.forEach(obj => {
+        const { offset } = obj;
 
         /*
             packed object header:
@@ -99,30 +97,27 @@ function readPack(path, objects) {
                     most significant part.
          */
         const headerSize = getObjectHeaderSize(data, offset);
-        let type = getObjectType(data, offset);
+        const type = getObjectType(data, offset);
 
         obj.type = type;
 
         let readIndex = offset + headerSize;
         if (type === C.OFS_DELTA) {
-
-          let byteLen = getObjectHeaderSize(data, offset + headerSize);
+          const byteLen = getObjectHeaderSize(data, offset + headerSize);
 
           readIndex += byteLen;
           // n-byte offset interpreted as a negative offset from the type-byte
           // of the header of the ofs-delta entry
-          let ofs_delta = getOffsetDelta(data, offset + headerSize, byteLen);
-
-          obj.ofs_delta = ofs_delta;
+          const ofsDelta = getOffsetDelta(data, offset + headerSize, byteLen);
+          obj.ofs_delta = ofsDelta;
         }
 
-        unzip_promises.push(zipped.unzip(data.slice(readIndex)).then(buf => obj.data = buf));
-      }
+        unzipPromises.push(zipped.unzip(data.slice(readIndex)).then(buf => { obj.data = buf; }));
+      });
 
-      return Promise.all(unzip_promises).catch(debug('tree:unzip'));
+      return Promise.all(unzipPromises).catch(debug('tree:unzip'));
     })
     .then(() => {
-
       const offsetIndexMap = new Map();
       objects.forEach(obj => offsetIndexMap.set(obj.offset, obj));
 
@@ -138,12 +133,12 @@ function readPack(path, objects) {
 
         remaining.forEach(obj => {
           if (obj.type === C.OFS_DELTA) {
-            const base_object = offsetIndexMap.get(obj.offset - obj.ofs_delta);
-            if (!base_object) {
+            const baseObject = offsetIndexMap.get(obj.offset - obj.ofs_delta);
+            if (!baseObject) {
               return debug('tree:no_base_object')(obj);
             }
 
-            if (base_object.type === C.OFS_DELTA) {
+            if (baseObject.type === C.OFS_DELTA) {
               return nextRun.push(obj);
             }
 
@@ -151,10 +146,10 @@ function readPack(path, objects) {
             const targetLength = getObjectHeaderSize(obj.data, sourceLength);
 
             const mem = byteReader.getReader(obj.data, sourceLength + targetLength);
-            const restored_data = restoreDataFromDiff(mem, base_object.data);
+            const restoredData = restoreDataFromDiff(mem, baseObject.data);
 
-            obj.data = restored_data;
-            obj.type = base_object.type;
+            obj.data = restoredData;
+            obj.type = baseObject.type;
           }
         }); /* end remaining.forEach */
 
@@ -167,10 +162,11 @@ function readPack(path, objects) {
 
 function getObjectHeaderSize(data, index) {
   let size = 1;
+  let currentIndex = index;
 
-  while (data[index] & (1 << 7)) {
+  while (data[currentIndex] & (1 << 7)) {
     size++;
-    index++;
+    currentIndex++;
   }
 
   return size;
@@ -180,53 +176,48 @@ function getObjectType(data, index) {
   return (data[index] >> 4) & (~(1 << 3));
 }
 
-function restoreDataFromDiff(mem, base_object) {
-
-  const restored_data = [];
-
-  while (mem.remaining() && restored_data.length <= 5 * config.maxKeepFileSize) {
-    const first_byte = mem.nextByte();
-    const op = (first_byte >> 7) & 1 /* first bit */;
+function restoreDataFromDiff(mem, baseObject) {
+  const restoredData = [];
+  while (mem.remaining() && restoredData.length <= 5 * config.maxKeepFileSize) {
+    const firstByte = mem.nextByte();
+    const op = (firstByte >> 7) & 1; /* first bit */
 
     if (op === C.INSERT) {
-
-      const copy_length = first_byte & (~(1 << 7));
-      restored_data.push(...mem.next(copy_length));
-
+      const copyLength = firstByte & (~(1 << 7));
+      restoredData.push(...mem.next(copyLength));
     } else if (op === C.COPY) {
+      const copyOffset = getCopyOffset(firstByte, mem);
+      const copyLength = getCopyLength(firstByte, mem);
 
-      const copyOffset = getCopyOffset(first_byte, mem);
-      const copyLength = getCopyLength(first_byte, mem);
-
-      restored_data.push(...base_object.slice(copyOffset, copyOffset + copyLength));
+      restoredData.push(...baseObject.slice(copyOffset, copyOffset + copyLength));
     }
   }
 
-  return Buffer.from(restored_data);
+  return Buffer.from(restoredData);
 }
 
 function getOffsetDelta(data, offset, len) {
-  let num = 0;
-  const originalLen = len;
-
   /*
-      n bytes with MSB set in all but the last one.
-      The offset is then the number constructed by
-      concatenating the lower 7 bit of each byte, and
-      for n >= 2 adding 2^7 + 2^14 + ... + 2^(7*(n-1))
-      to the result.
-   */
+    n bytes with MSB set in all but the last one.
+    The offset is then the number constructed by
+    concatenating the lower 7 bit of each byte, and
+    for n >= 2 adding 2^7 + 2^14 + ... + 2^(7*(n-1))
+    to the result.
+  */
 
-  while (len--) {
-    const bin = data[offset++] & (~(1 << 7)) /* remove the MSB bit */;
+  let num = 0;
+  let currentLen = len;
+  let currentOffset = offset;
+  while (currentLen--) {
+    const bin = data[currentOffset++] & (~(1 << 7)); /* remove the MSB bit */
 
     num <<= 7;
     num |= bin;
   }
 
-  if (originalLen >= 2) {
-    for (let i = 1; i < originalLen; i++) {
-      num += 1 << (7 * (originalLen - i));
+  if (len >= 2) {
+    for (let i = 1; i < len; i++) {
+      num += 1 << (7 * (len - i));
     }
   }
 
@@ -256,4 +247,4 @@ function getCopyLength(binary, mem) {
 
 module.exports = {
   read: readPackIdx,
-}
+};

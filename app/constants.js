@@ -1,6 +1,7 @@
 'use strict';
 
 const C = {
+    UNKNOWN       :   -1  ,
     COMMIT        :   1   /* 001 */ ,
     TREE          :   2   /* 010 */ ,
     BLOB          :   3   /* 011 */ ,

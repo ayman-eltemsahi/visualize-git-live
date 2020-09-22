@@ -1,16 +1,15 @@
-'use strict';
-
+const path = require('path');
 const C = require('./constants');
 const config = require('../config');
-const path = require('path');
 
-function shaFromPath(path) {
-  const s = path.split('\\'), n = s.length;
+function shaFromPath(pathname) {
+  const s = pathname.split('\\');
+  const n = s.length;
   return s[n - 2] + s[n - 1];
 }
 
-function dirFromPath(path) {
-  const s = path.split('\\');
+function dirFromPath(pathname) {
+  const s = pathname.split('\\');
   return s.slice(0, s.length - 2).join('\\');
 }
 
@@ -27,27 +26,30 @@ function formatSize(fileSize) {
   if (typeof fileSize !== 'number') return fileSize;
 
   if (fileSize > 1000000000) {
-    return (fileSize / 1000000000).toPrecision(3) + " GB";
-  } else if (fileSize > 1000000) {
-    return (fileSize / 1000000).toPrecision(3) + " MB";
-  } else if (fileSize > 1000) {
-    return (fileSize / 1000).toPrecision(3) + " KB";
-  } else {
-    return fileSize + " b"
+    return `${(fileSize / 1000000000).toPrecision(3)} GB`;
   }
+
+  if (fileSize > 1000000) {
+    return `${(fileSize / 1000000).toPrecision(3)} MB`;
+  }
+
+  if (fileSize > 1000) {
+    return `${(fileSize / 1000).toPrecision(3)} KB`;
+  }
+
+  return `${fileSize} bytes`;
 }
 
 function removeExtension(name) {
-  let dotIndex = name.lastIndexOf('.');
-  if (dotIndex == -1) return name;
-  return name.substr(0, dotIndex);
+  const dotIndex = name.lastIndexOf('.');
+  return (dotIndex === -1) ? name : name.substr(0, dotIndex);
 }
 
 function removeDuplicates(array) {
   if (!Array.isArray(array) || array.length < 2) return array;
 
   array.sort();
-  let result = [array[0]];
+  const result = [array[0]];
   for (let i = 1; i < array.length; i++) {
     if (array[i] !== array[i - 1]) {
       result.push(array[i]);
@@ -62,31 +64,27 @@ function getTypeFromString(type) {
     case 'blob': return C.BLOB;
     case 'tree': return C.TREE;
     case 'commit': return C.COMMIT;
-    default: return;
+    default: return C.UNKNOWN;
   }
 }
 
 function limitDataSize(data) {
-  if (data && data.length > config.maxKeepFileSize) {
-    data = data.substr(0, config.maxKeepFileSize - 10) + '...................';
-  }
-
-  return data;
+  return (data && data.length > config.maxKeepFileSize)
+    ? `${data.substr(0, config.maxKeepFileSize - 10)} ...................`
+    : data;
 }
 
-function getNodeWhereHeadPoints(head) {
+function getNodeWhereHeadPoints(head = '') {
   let node;
-  head = head || '';
   head = head.toString().trim();
   if (head.startsWith('ref')) {
-    let sp = head.split('/');
+    const sp = head.split('/');
     node = sp[sp.length - 1].trim();
 
     return node;
   }
-  else {
-    return head;
-  }
+
+  return head;
 }
 
 module.exports = {
@@ -99,5 +97,5 @@ module.exports = {
   removeDuplicates,
   getTypeFromString,
   limitDataSize,
-  getNodeWhereHeadPoints
-}
+  getNodeWhereHeadPoints,
+};

@@ -1,11 +1,9 @@
-'use strict';
-
+const debug = require('debug');
 const tree = require('./tree');
 const pfs = require('./pfs');
-const debug = require('debug');
 const C = require('./constants');
 const byteReader = require('./util/byte-reader');
-const parser = require('./parser/');
+const parser = require('./parser');
 const helper = require('./helper');
 const zipped = require('./zipped');
 
@@ -30,7 +28,7 @@ class TreeNode {
    */
   patch(dir, sha, type, data) {
     dir = dir || this.dir;
-    let index = dir.indexOf('.git');
+    const index = dir.indexOf('.git');
     this.dir = (index > -1) ? dir.substr(0, index) : dir;
 
     this.type = type || this.type;
@@ -78,15 +76,15 @@ class TreeNode {
       return this.parseData(parsedData, true);
     }
 
-    let filepath = helper.getFileNameFromSha(`${this.dir}/.git/objects`, this.sha);
-    pfs.exists(filepath)
+    const filepath = helper.getFileNameFromSha(`${this.dir}/.git/objects`, this.sha);
+    return pfs.exists(filepath)
       .then(exists => {
         if (exists) {
           return zipped.readFileWithSize(filepath);
-        } else {
-          debug('tree:no_file')(filepath);
-          return this.data ? ({ size: this.data.size, buffer: this.data }) : null;
         }
+
+        debug('tree:no_file')(filepath);
+        return this.data ? ({ size: this.data.size, buffer: this.data }) : null;
       })
       .then(data => {
         if (!data) {
@@ -136,7 +134,7 @@ class TreeNode {
    * @param {Boolean} isPack
    */
   parseData(data, isPack) {
-    if (!data) LEAF;
+    if (!data) return LEAF;
 
     this.explored = true;
 
@@ -159,7 +157,7 @@ class TreeNode {
   parseCommit(data, isPack) {
     const currentTree = tree.getInstance();
 
-    let treeSha = data.treeSha;
+    const { treeSha } = data;
     this.setName(data.header);
 
     let node = currentTree.get(treeSha);
@@ -171,14 +169,14 @@ class TreeNode {
 
     this.addChild(node);
 
-    for (let parent of data.parents) {
+    data.parents.forEach(parent => {
       node = currentTree.get(parent);
       if (!node) {
         node = new TreeNode(this.dir, parent, C.COMMIT);
         currentTree.set(parent, node);
       }
       this.addChild(node);
-    }
+    });
 
     this.data = data.message;
     return Promise.all(this.children.map(child => child.explore(isPack)));
@@ -193,8 +191,8 @@ class TreeNode {
     if (!Array.isArray(data)) return;
     const currentTree = tree.getInstance();
 
-    for (let item of data) {
-      let sha = item.sha;
+    data.forEach(item => {
+      const { sha } = item;
 
       let node = currentTree.get(sha);
       if (!node) {
@@ -204,7 +202,7 @@ class TreeNode {
 
       node.setName(item.name);
       this.addChild(node);
-    }
+    });
 
     this.data = this.children.map(child => child.name).join('\n');
     return Promise.all(this.children.map(child => child.explore(isPack)));
@@ -215,11 +213,10 @@ class TreeNode {
    * @param {*} data
    * @param {Boolean} isPack
    */
-  parseBlob(data, isPack) {
+  parseBlob(data /* , isPack */) {
     this.data = data;
     return Promise.resolve(this.data);
   }
 }
-
 
 module.exports = TreeNode;

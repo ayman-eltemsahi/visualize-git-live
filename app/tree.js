@@ -1,9 +1,6 @@
-'use strict';
-
 const C = require('./constants');
 
 class Tree {
-
   constructor() {
     this.nodes = new Map();
     this.shortNodes = new Map();
@@ -30,16 +27,13 @@ class Tree {
   }
 
   set(sha, node) {
-
     this.nodes.set(sha, node);
     this.shortNodes.set(sha.substr(0, 7), node);
     return node;
   }
 
   remove(node) {
-    if (typeof node !== 'string') node = node.sha;
-
-    return this.nodes.delete(node);
+    return this.nodes.delete((typeof node === 'string') ? node : node.sha);
   }
 
   has(sha) {
@@ -47,14 +41,14 @@ class Tree {
   }
 
   getBranches() {
-    let b = [];
-    for (let item of this.values()) {
+    const branches = [];
+    this.values().forEach(item => {
       if (item.type === C.BRANCH) {
-        b.push(item);
+        branches.push(item);
       }
-    }
+    });
 
-    return b;
+    return branches;
   }
 }
 
@@ -75,5 +69,5 @@ function getNew() {
 
 module.exports = {
   getInstance,
-  getNew
-}
+  getNew,
+};

@@ -1,5 +1,3 @@
-'use strict';
-
 const fs = require('fs').promises;
 
 async function exists(file) {
@@ -23,4 +21,4 @@ async function readFileWithSize(file) {
 module.exports = {
   exists,
   readFileWithSize,
-}
+};

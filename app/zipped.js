@@ -19,7 +19,7 @@ function readFileWithSize(path) {
 
         const slicedBuffer = buffer.slice(0, config.maxKeepFileSize);
         for (let i = 0; i < 15; i++) {
-          slicedBuffer.write('.', buffer.length - i - 1);
+          slicedBuffer.write('.', slicedBuffer.length - i - 1);
         }
 
         return resolve({ size, buffer: slicedBuffer });

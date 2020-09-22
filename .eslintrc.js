@@ -14,5 +14,6 @@ module.exports = {
     'linebreak-style': 'off',
     'no-plusplus': 'off',
     'arrow-parens': 'off',
+    'max-len': ["error", { ignoreComments: true, code: 140 }],
   },
 };
