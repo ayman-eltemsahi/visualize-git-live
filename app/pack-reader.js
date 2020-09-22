@@ -1,5 +1,3 @@
-'use strict';
-
 // https://github.com/git/git/blob/master/Documentation/technical/pack-format.txt
 
 const byteReader = require('./util/byte-reader');
@@ -14,16 +12,16 @@ function readPackIdx(path) {
   return readFile(`${path}.idx`)
     .then(data => {
 
-      var mem = byteReader.getReader(data);
+      const mem = byteReader.getReader(data);
 
       // A 4-byte magic number \377tOc which is an unreasonable fanout[0] value.
       mem.next(4, C.HEX);
 
       // A 4-byte version number (= 2)
-      var version = mem.next(4, C.NUMBER);
+      /* const version = */ mem.next(4, C.NUMBER);
 
       // A 256-entry fan-out table
-      var fanoutTable = [];
+      const fanoutTable = [];
       let ObjectsCount;
       for (let i = 0; i < 256; i++) {
         ObjectsCount = mem.next(4, C.NUMBER);
@@ -31,7 +29,7 @@ function readPackIdx(path) {
       }
 
       // a list of all the objects
-      var objects = [];
+      const objects = [];
       for (let i = 0; i < ObjectsCount; i++) objects.push({});
 
       /*
@@ -68,16 +66,16 @@ function readPack(path, objects) {
   return readFile(`${path}.pack`)
     .then(data => {
 
-      var mem = byteReader.getReader(data);
+      const mem = byteReader.getReader(data);
 
       // 4-byte signature:
       mem.next(4);
 
       // 4-byte version number (network byte order):
-      var version = mem.next(4, C.NUMBER);
+      /* const version = */ mem.next(4, C.NUMBER);
 
       // 4-byte number of objects contained in the pack (network byte order)
-      var objectsCount = mem.next(4, C.NUMBER);
+      const objectsCount = mem.next(4, C.NUMBER);
 
       debug('tree:pack-objects-count')(objectsCount);
 
@@ -85,10 +83,10 @@ function readPack(path, objects) {
         throw new Error('TOO_MANY_OBJECTS');
       }
 
-      var unzip_promises = [];
+      const unzip_promises = [];
 
       for (let obj of objects) {
-        let offset = obj.offset;
+        const offset = obj.offset;
 
         /*
             packed object header:
@@ -100,7 +98,7 @@ function readPack(path, objects) {
                     is the least significant part, and sizeN is the
                     most significant part.
          */
-        let headerSize = getObjectHeaderSize(data, offset);
+        const headerSize = getObjectHeaderSize(data, offset);
         let type = getObjectType(data, offset);
 
         obj.type = type;
@@ -125,7 +123,7 @@ function readPack(path, objects) {
     })
     .then(() => {
 
-      let offsetIndexMap = new Map();
+      const offsetIndexMap = new Map();
       objects.forEach(obj => offsetIndexMap.set(obj.offset, obj));
 
       /*
@@ -136,14 +134,11 @@ function readPack(path, objects) {
       let remaining = objects;
       while (remaining.length) {
         debug('tree:remaining.length')(remaining.length);
-        let nextRun = [];
+        const nextRun = [];
 
         remaining.forEach(obj => {
-
           if (obj.type === C.OFS_DELTA) {
-
-            let base_object = offsetIndexMap.get(obj.offset - obj.ofs_delta);
-
+            const base_object = offsetIndexMap.get(obj.offset - obj.ofs_delta);
             if (!base_object) {
               return debug('tree:no_base_object')(obj);
             }
@@ -152,16 +147,15 @@ function readPack(path, objects) {
               return nextRun.push(obj);
             }
 
-            let sourceLength = getObjectHeaderSize(obj.data, 0);
-            let targetLength = getObjectHeaderSize(obj.data, sourceLength);
+            const sourceLength = getObjectHeaderSize(obj.data, 0);
+            const targetLength = getObjectHeaderSize(obj.data, sourceLength);
 
-            let mem = byteReader.getReader(obj.data, sourceLength + targetLength);
-            let restored_data = restoreDataFromDiff(mem, base_object.data);
+            const mem = byteReader.getReader(obj.data, sourceLength + targetLength);
+            const restored_data = restoreDataFromDiff(mem, base_object.data);
 
             obj.data = restored_data;
             obj.type = base_object.type;
           }
-
         }); /* end remaining.forEach */
 
         remaining = nextRun;
@@ -188,33 +182,32 @@ function getObjectType(data, index) {
 
 function restoreDataFromDiff(mem, base_object) {
 
-  var restored_data = [], first_byte, op;
+  const restored_data = [];
 
   while (mem.remaining() && restored_data.length <= 5 * config.maxKeepFileSize) {
-
-    first_byte = mem.nextByte();
-    op = (first_byte >> 7) & 1 /* first bit */;
+    const first_byte = mem.nextByte();
+    const op = (first_byte >> 7) & 1 /* first bit */;
 
     if (op === C.INSERT) {
 
-      let copy_length = first_byte & (~(1 << 7));
+      const copy_length = first_byte & (~(1 << 7));
       restored_data.push(...mem.next(copy_length));
 
     } else if (op === C.COPY) {
 
-      let copyOffset = getCopyOffset(first_byte, mem);
-      let copyLength = getCopyLength(first_byte, mem);
+      const copyOffset = getCopyOffset(first_byte, mem);
+      const copyLength = getCopyLength(first_byte, mem);
 
       restored_data.push(...base_object.slice(copyOffset, copyOffset + copyLength));
     }
   }
 
-  restored_data = Buffer.from(restored_data);
-  return restored_data;
+  return Buffer.from(restored_data);
 }
 
 function getOffsetDelta(data, offset, len) {
-  var num = 0, sh = 0, bin, len2 = len;;
+  let num = 0;
+  const originalLen = len;
 
   /*
       n bytes with MSB set in all but the last one.
@@ -225,15 +218,15 @@ function getOffsetDelta(data, offset, len) {
    */
 
   while (len--) {
-    bin = data[offset++] & (~(1 << 7)) /* remove the MSB bit */;
+    const bin = data[offset++] & (~(1 << 7)) /* remove the MSB bit */;
 
     num <<= 7;
     num |= bin;
   }
 
-  if (len2 >= 2) {
-    for (let i = 1; i < len2; i++) {
-      num += 1 << (7 * (len2 - i));
+  if (originalLen >= 2) {
+    for (let i = 1; i < originalLen; i++) {
+      num += 1 << (7 * (originalLen - i));
     }
   }
 
@@ -262,5 +255,5 @@ function getCopyLength(binary, mem) {
 }
 
 module.exports = {
-  read: readPackIdx
+  read: readPackIdx,
 }

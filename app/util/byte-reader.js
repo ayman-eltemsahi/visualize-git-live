@@ -1,14 +1,14 @@
-'use strict';
+/* eslint no-bitwise: 0 */
 
-const logDebug = require('debug')('log');
-const errorDebug = require('debug')('error');
+// const logDebug = require('debug')('log');
+// const errorDebug = require('debug')('error');
 const C = require('../constants');
 
-function four_bytes_to_int(bytes) {
+function fourBytesToInt(bytes) {
   return bytes[3] | (bytes[2] << 8) | (bytes[1] << 16) | (bytes[0] << 24);
 }
 
-function byte_to_binary(byte) {
+function byteToBinary(byte) {
   return [
     (byte >> 7) & 1,
     (byte >> 6) & 1,
@@ -17,50 +17,47 @@ function byte_to_binary(byte) {
     (byte >> 3) & 1,
     (byte >> 2) & 1,
     (byte >> 1) & 1,
-    (byte >> 0) & 1
-  ]
+    (byte >> 0) & 1,
+  ];
 }
 
 function toBinary(data) {
-  var bin = [];
+  const bin = [];
 
-  data.forEach(ch => bin.push(...byte_to_binary(ch)));
+  data.forEach(ch => bin.push(...byteToBinary(ch)));
 
   return bin;
 }
 
-function to_hex(data) {
+function toHex(data) {
   let h = '';
-  for (let d of data.map(Number)) {
-    h += (d < 16) ? ('0' + d.toString('16')) : d.toString('16');
-  }
+  data.map(Number).forEach(d => {
+    h += (d < 16) ? (`0${d.toString('16')}`) : d.toString('16');
+  });
+
   return h;
 }
 
 function getCallBackByType(type) {
-  var cb;
-  if (type === C.STRING) {
-    cb = e => e.toString();
-  } else if (type === C.HEX) {
-    cb = to_hex;
-  } else if (type === C.NUMBER) {
-    cb = four_bytes_to_int;
-  } else if (type === C.BIN) {
-    cb = toBinary;
-  } else {
-    cb = e => e;
+  switch (type) {
+    case C.STRING:
+      return e => e.toString();
+    case C.HEX:
+      return toHex;
+    case C.NUMBER:
+      return fourBytesToInt;
+    case C.BIN:
+      return toBinary;
+
+    default:
+      return e => e;
   }
-  return cb;
 }
 
-
-
-function getReader(data, index) {
-  index = index || 0;
-
-  var previousIndex = -1;
+function getReader(data, index = 0) {
+  let previousIndex = -1;
   function pre(options) {
-    previousIndex = void 0;
+    previousIndex = undefined;
 
     if (options && options.peek) {
       previousIndex = index;
@@ -68,7 +65,6 @@ function getReader(data, index) {
   }
 
   function post(options) {
-
     if (options && options.peek) {
       index = previousIndex;
     }
@@ -81,9 +77,9 @@ function getReader(data, index) {
   function next(numberOfBytes, type, options) {
     pre(options);
 
-    var cb = getCallBackByType(type);
-    let nextIndex = index + numberOfBytes;
-    let ret = data.slice(index, nextIndex);
+    const cb = getCallBackByType(type);
+    const nextIndex = index + numberOfBytes;
+    const ret = data.slice(index, nextIndex);
 
     index = nextIndex;
 
@@ -95,7 +91,7 @@ function getReader(data, index) {
   function nextUntil(char, type, options) {
     pre(options);
 
-    var cb = getCallBackByType(type);
+    const cb = getCallBackByType(type);
     let nextIndex = index;
 
     let maxIndex = data.length;
@@ -148,11 +144,10 @@ function getReader(data, index) {
     skipUntil,
     toEnd,
     remaining,
-    nextByte
-  }
+    nextByte,
+  };
 }
-
 
 module.exports = {
-  getReader
-}
+  getReader,
+};
