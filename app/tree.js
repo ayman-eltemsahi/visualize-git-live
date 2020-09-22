@@ -47,7 +47,6 @@ class Tree {
   }
 
   getBranches() {
-
     let b = [];
     for (let item of this.values()) {
       if (item.type === C.BRANCH) {
@@ -59,7 +58,7 @@ class Tree {
   }
 }
 
-var instance = null;
+let instance = null;
 
 function getInstance() {
   if (instance === null) {

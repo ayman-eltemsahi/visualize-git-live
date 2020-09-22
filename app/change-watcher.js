@@ -85,6 +85,7 @@ async function objectsChangeHandler(dir, eventType, filename) {
         tree.set(sha, node);
         const _ = await node.explore();
         socket.addNode(node);
+
         node.children.forEach(child => {
           if (node.type === C.COMMIT || node.type === C.TREE) {
             socket.addNode(child);
