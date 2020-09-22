@@ -32,57 +32,7 @@ function getTree(visible) {
       nodes = data.nodes;
       edges = data.edges;
 
-      nodes.forEach(node => {
-        processNode(node);
-        nodesMap.set(node.id, node);
-      });
-
-      edges.forEach(processEdge);
-
-      const improvedLayout = nodes.length < 150;
-
-      nodesDataSet = new vis.DataSet(nodes.filter(x => visibleType[x.type]));
-      edgesDataSet = new vis.DataSet(edges);
-
-      let head = nodes.find(x => x.id === 'HEAD');
-      selectedNode = head ? "HEAD" : "master";
-      lastOp();
-
-      // graph network
-      const container = document.getElementById('graph');
-      const graphData = {
-        nodes: nodesDataSet,
-        edges: edgesDataSet
-      };
-
-      var options = {
-        layout: {
-          // randomSeed: 6333,
-          improvedLayout: improvedLayout
-        },
-        height: '100%',
-        width: '100%'
-      };
-
-      network = new vis.Network(container, graphData, options);
-
-      network.on("doubleClick", function (params) {
-        var node = params.nodes[0];
-
-        if (!node) return;
-        get('/nodedata/' + node)
-          .then(node => {
-            console.log(node);
-            console.log(node.data);
-          });
-      });
-
-      network.on("click", function (params) {
-        var node = params.nodes[0];
-
-        if (!node) return;
-        selectedNode = node;
-      });
+      drawVisJs(data.nodes, data.edges);
     });
 
   openWSConnection();
@@ -171,7 +121,7 @@ function removeOriginalEdge(data) {
 }
 
 function get(url) {
-  return new Promise(function (resolve, reject) {
+  return new Promise((resolve, reject) => {
     $.ajax(url).done(resolve).catch(reject);
   });
 }

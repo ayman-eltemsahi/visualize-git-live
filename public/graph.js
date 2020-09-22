@@ -1,85 +1,56 @@
 'use strict';
 
-function showReachable(level) {
-  if (!selectedNode) return alert("please click on node first");
+function drawVisJs(nodes, edges) {
+    nodes.forEach(node => {
+        processNode(node);
+        nodesMap.set(node.id, node);
+    });
 
-  level = Number.parseInt(level);
+    edges.forEach(processEdge);
 
-  const visited = new Set();
-  recReachableFrom(selectedNode, visited, level);
+    const improvedLayout = nodes.length < 150;
 
-  nodes.filter(node => !visited.has(node.id))
-    .forEach(removeNode);
-}
+    nodesDataSet = new vis.DataSet(nodes.filter(x => visibleType[x.type]));
+    edgesDataSet = new vis.DataSet(edges);
 
-function showNotReachable(level) {
-  if (!selectedNode) return alert("please click on node first");
+    const head = nodes.find(x => x.id === 'HEAD');
+    selectedNode = head ? "HEAD" : "master";
+    lastOp();
 
-  level = Number.parseInt(level);
+    // graph network
+    const container = document.getElementById('graph');
+    const graphData = {
+        nodes: nodesDataSet,
+        edges: edgesDataSet
+    };
 
-  const visited = new Set();
-  recReachableFrom(selectedNode, visited, level);
+    const options = {
+        layout: {
+            // randomSeed: 6333,
+            improvedLayout: improvedLayout
+        },
+        height: '100%',
+        width: '100%',
+        physics: nodesDataSet.length < 100,
+    };
 
-  visited.delete(selectedNode);
-  nodes.filter(node => visited.has(node.id))
-    .forEach(removeNode);
-}
+    network = new vis.Network(container, graphData, options);
 
-function recReachableFrom(nodeId, visited, level) {
-  // no level in input ==> get all
-  if (typeof level !== 'number' || isNaN(level)) level = 1 << 30;
+    network.on("doubleClick", function (params) {
+        const node = params.nodes[0];
 
-  // reached max level
-  if (level < 1) return;
+        if (!node) return;
+        get('/nodedata/' + node)
+            .then(node => {
+                console.log(node);
+                console.log(node.data);
+            });
+    });
 
-  if (visited.has(nodeId)) return;
-  const it = nodesMap.get(nodeId);
-  if (!it || !visibleType[it.type]) return;
-  visited.add(nodeId);
+    network.on("click", function (params) {
+        const node = params.nodes[0];
 
-  level--;
-
-  edges.filter(edge => edge.from === nodeId)
-    .forEach(edge => recReachableFrom(edge.to, visited, level));
-}
-
-
-function showWhoReach(level) {
-  if (!selectedNode) return alert("please click on node first");
-  level = Number.parseInt(level);
-
-  const visited = new Set();
-  recWhoReach(selectedNode, visited, level);
-
-  nodes.filter(node => !visited.has(node.id))
-    .forEach(removeNode);
-}
-
-function showNotWhoReach(level) {
-  if (!selectedNode) return alert("please click on node first");
-  level = Number.parseInt(level);
-
-  const visited = new Set();
-  recWhoReach(selectedNode, visited, level);
-
-  visited.delete(selectedNode);
-  nodes.filter(node => visited.has(node.id))
-    .forEach(removeNode);
-}
-
-function recWhoReach(nodeId, visited, level) {
-  // no level in input ==> get all
-  if ((typeof level !== 'number') || isNaN(level)) level = 1 << 30;
-
-  // reached max level
-  if (level < 1) return;
-
-  if (visited.has(nodeId)) return;
-  if (!visibleType[nodesMap.get(nodeId).type]) return;
-  visited.add(nodeId);
-
-  level--;
-
-  edges.filter(edge => edge.to === nodeId)
-    .forEach(edge => recWhoReach(edge.from, visited, level));
+        if (!node) return;
+        selectedNode = node;
+    });
 }
