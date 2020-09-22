@@ -32,7 +32,7 @@ function getTree(visible) {
       nodes = data.nodes;
       edges = data.edges;
 
-      drawVisJs(data.nodes, data.edges);
+      network = drawVisJs(data.nodes, data.edges);
     });
 
   openWSConnection();

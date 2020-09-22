@@ -34,13 +34,23 @@ function drawVisJs(nodes, edges) {
         physics: nodesDataSet.length < 100,
     };
 
-    network = new vis.Network(container, graphData, options);
+    const network = new vis.Network(container, graphData, options);
 
+    listenToEvents(network);
+
+    return network;
+}
+
+function listenToEvents(network) {
     network.on("doubleClick", function (params) {
-        const node = params.nodes[0];
+        const nodeId = params.nodes[0];
 
-        if (!node) return;
-        get('/nodedata/' + node)
+        if (!nodeId) {
+            console.log(`nodeId does not exist!`);
+            return;
+        }
+
+        get('/nodedata/' + nodeId)
             .then(node => {
                 console.log(node);
                 console.log(node.data);
@@ -48,9 +58,13 @@ function drawVisJs(nodes, edges) {
     });
 
     network.on("click", function (params) {
-        const node = params.nodes[0];
+        const nodeId = params.nodes[0];
 
-        if (!node) return;
-        selectedNode = node;
+        if (!nodeId) {
+            console.log(`nodeId does not exist!`);
+            return;
+        }
+
+        selectedNode = nodeId;
     });
 }

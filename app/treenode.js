@@ -2,9 +2,7 @@
 
 const tree = require('./tree');
 const pfs = require('./pfs');
-const path = require('path');
 const debug = require('debug');
-const config = require('../config');
 const C = require('./constants');
 const byteReader = require('./util/byte-reader');
 const parser = require('./parser/');
@@ -16,12 +14,20 @@ const LEAF = Promise.resolve(0);
 class TreeNode {
   constructor(dir, sha, type, data) {
     this.sha = '';
+    this.name = '';
     this.children = [];
-    this.lastRequestedEdge = void 0;
+    this.lastRequestedEdge = undefined;
 
     this.patch(dir, sha, type, data);
   }
 
+  /**
+   *
+   * @param {String} dir
+   * @param {String} sha
+   * @param {String} type
+   * @param {*} data
+   */
   patch(dir, sha, type, data) {
     dir = dir || this.dir;
     let index = dir.indexOf('.git');
@@ -35,6 +41,10 @@ class TreeNode {
     this.data = data || this.data;
   }
 
+  /**
+   *
+   * @param {String} name
+   */
   setName(name) {
     this.name = name || this.name;
   }
@@ -49,8 +59,9 @@ class TreeNode {
     this.children.length = 0;
   }
 
-  /*
+  /**
    * read the contents of this node and decide its type, data and children (if exist)
+   * @param {Boolean} isPack
    */
   explore(isPack) {
     if (this.explored) {
@@ -63,16 +74,16 @@ class TreeNode {
         return LEAF;
       }
 
-      let parsedData = parser.parse(this.type, this.data);
+      const parsedData = parser.parse(this.type, this.data);
       return this.parseData(parsedData, true);
     }
 
     let filepath = helper.getFileNameFromSha(`${this.dir}/.git/objects`, this.sha);
-    return pfs.fileExists(filepath)
-      .then((exists) => {
-        if (exists)
+    pfs.exists(filepath)
+      .then(exists => {
+        if (exists) {
           return zipped.readFileWithSize(filepath);
-        else {
+        } else {
           debug('tree:no_file')(filepath);
           return this.data ? ({ size: this.data.size, buffer: this.data }) : null;
         }
@@ -83,9 +94,9 @@ class TreeNode {
           return LEAF;
         }
 
-        let reader = byteReader.getReader(data.buffer);
+        const reader = byteReader.getReader(data.buffer);
 
-        let tryFiguringType = reader.nextUntil(0x20, C.STRING, { maxLength: 100 });
+        const tryFiguringType = reader.nextUntil(0x20, C.STRING, { maxLength: 100 });
         reader.skipUntil(0x00);
 
         this.type = helper.getTypeFromString(tryFiguringType);
@@ -93,7 +104,7 @@ class TreeNode {
 
         this.size = this.size || data.size;
 
-        let parsedData = parser.parse(this.type, data.buffer, this.type === C.BLOB ? 0 : reader.getIndex());
+        const parsedData = parser.parse(this.type, data.buffer, this.type === C.BLOB ? 0 : reader.getIndex());
 
         this.data = parsedData;
         return this.parseData(parsedData);
@@ -101,9 +112,12 @@ class TreeNode {
       .catch(debug('tree:error:explore'));
   }
 
-  /*
+  /**
    * return the edges between this node and its children
    * and call the children method recursively
+   * @param {*} edgeTimeStamp
+   * @param {*} edges
+   * @param {Function} selector
    */
   fillEdges(edgeTimeStamp, edges, selector) {
     if (this.lastRequestedEdge === edgeTimeStamp) return;
@@ -116,8 +130,10 @@ class TreeNode {
       });
   }
 
-  /*
+  /**
    * decides the type of data and creates the node according to its type
+   * @param {*} data
+   * @param {Boolean} isPack
    */
   parseData(data, isPack) {
     if (!data) LEAF;
@@ -129,12 +145,17 @@ class TreeNode {
       case C.BLOB: return this.parseBlob(data, isPack);
       case C.COMMIT: return this.parseCommit(data, isPack);
 
-      default: this.explored = false;
+      default:
+        this.explored = false;
+        return LEAF;
     }
-
-    return LEAF;
   }
 
+  /**
+   *
+   * @param {*} data
+   * @param {Boolean} isPack
+   */
   parseCommit(data, isPack) {
     const currentTree = tree.getInstance();
 
@@ -163,6 +184,11 @@ class TreeNode {
     return Promise.all(this.children.map(child => child.explore(isPack)));
   }
 
+  /**
+   *
+   * @param {*} data
+   * @param {Boolean} isPack
+   */
   parseTree(data, isPack) {
     if (!Array.isArray(data)) return;
     const currentTree = tree.getInstance();
@@ -184,6 +210,11 @@ class TreeNode {
     return Promise.all(this.children.map(child => child.explore(isPack)));
   }
 
+  /**
+   *
+   * @param {*} data
+   * @param {Boolean} isPack
+   */
   parseBlob(data, isPack) {
     this.data = data;
     return Promise.resolve(this.data);

@@ -3,8 +3,7 @@
 // https://github.com/git/git/blob/master/Documentation/technical/pack-format.txt
 
 const byteReader = require('./util/byte-reader');
-const pfs = require('./pfs');
-const path = require('path');
+const fs = require('fs');
 const zipped = require('./zipped');
 const debug = require('debug');
 
@@ -12,7 +11,7 @@ const config = require('../config');
 const C = require('./constants');
 
 function readPackIdx(path) {
-  return pfs
+  return fs.promises
     .readFile(`${path}.idx`)
     .then(data => {
 
@@ -67,7 +66,7 @@ function readPackIdx(path) {
 
 
 function readPack(path, objects) {
-  return pfs
+  return fs.promises
     .readFile(`${path}.pack`)
     .then(data => {
 

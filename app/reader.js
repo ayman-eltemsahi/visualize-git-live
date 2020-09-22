@@ -1,15 +1,10 @@
 'use strict';
 
-const zlib = require('zlib');
-const gzip = zlib.createUnzip();
 const pfs = require('./pfs');
 const fs = require('fs');
 const debug = require('debug');
-const path = require('path');
 const TreeNode = require('./treenode');
 const helper = require('./helper');
-const parser = require('./parser');
-const socket = require('./socket');
 const changeWatcher = require('./change-watcher');
 const packReader = require('./pack-reader');
 const C = require('./constants');
@@ -46,14 +41,14 @@ function makeBranchNode(dir, commitSha, branchSha, filename) {
 }
 
 function readObjectsFolder(dir) {
-  return pfs.readFolder(`${dir}/objects`)
+  return fs.promises.readdir(`${dir}/objects`)
     .then(folders => folders.filter(folder => folder.toString().length === 2)) // ignore info and pack
     .then(folders => folders.map(folder => readSingleObjectsFolder(dir, folder)))
     .then(_all => Promise.all(_all));
 }
 
 function readSingleObjectsFolder(dir, folderName /* first two letters of the sha */) {
-  return pfs.readFolder(`${dir}/objects/${folderName}`)
+  return fs.promises.readdir(`${dir}/objects/${folderName}`)
     .then(restOfShas /* string[] */ => {
       return restOfShas.map(restOfSha => parseFile(`${dir}/objects/${folderName}`, folderName + restOfSha));
     })
@@ -61,11 +56,11 @@ function readSingleObjectsFolder(dir, folderName /* first two letters of the sha
 }
 
 function readRefs(dir) {
-  return pfs.readFolder(`${dir}/refs/heads`)
+  return fs.promises.readdir(`${dir}/refs/heads`)
     .then(refFiles => {
       return refFiles.map(file =>
         (
-          pfs.readFile(`${dir}/refs/heads/${file}`)
+          fs.promises.readFile(`${dir}/refs/heads/${file}`)
             .then(data => makeBranchNode(dir, data, file))
             .catch(debug('tree:error:readRefs:inside'))
         )
@@ -76,10 +71,10 @@ function readRefs(dir) {
 }
 
 function readPackedRefs(dir) {
-  return pfs.fileExists(`${dir}/packed-refs`)
+  return pfs.exists(`${dir}/packed-refs`)
     .then(exists => {
       if (exists) {
-        return pfs.readFile(`${dir}/packed-refs`);
+        return fs.promises.readFile(`${dir}/packed-refs`);
       } else {
         return '';
       }
@@ -104,7 +99,7 @@ function readPackedRefs(dir) {
 }
 
 function readHead(dir) {
-  return pfs.readFile(`${dir}/HEAD`)
+  return fs.promises.readFile(`${dir}/HEAD`)
     .then(head => {
 
       const headNode = tree.get('HEAD');
@@ -132,10 +127,10 @@ function parseFile(dir, sha) {
 function readPacks(dir) {
 
   // the packs info file
-  let info = pfs.fileExists(`${dir}/objects/info/packs`)
+  let info = pfs.exists(`${dir}/objects/info/packs`)
     .then(exists => {
       if (exists) {
-        return pfs.readFile(`${dir}/objects/info/packs`);
+        return fs.promises.readFile(`${dir}/objects/info/packs`);
       } else {
         return '';
       }
@@ -143,7 +138,7 @@ function readPacks(dir) {
     .then(data => data.toString().split('\n'));
 
   // sometimes, the pack is not registered in the info file
-  const files = pfs.readFolder(`${dir}/objects/pack`)
+  const files = fs.promises.readdir(`${dir}/objects/pack`)
     .then(files => files.map(helper.removeExtension));
 
 

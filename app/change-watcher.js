@@ -3,7 +3,6 @@
 const pfs = require('./pfs');
 const fs = require('fs');
 const TreeNode = require('./treenode');
-const parser = require('./parser');
 const helper = require('./helper');
 const socket = require('./socket');
 const watchDebug = require('debug')('watch');
@@ -26,84 +25,81 @@ function setupListeners(dir) {
 
 function headListener(dir) {
   fs.watch(`${dir}/HEAD`, (eventType, filename) => {
-    stageChange(headChanges, [`${dir}/HEAD`, eventType, filename])
+    stageChange(headChanges, [`${dir}/HEAD`, eventType, filename]);
   });
 }
 
-function headChangeHandler(headDir) {
-  return pfs.readFile(headDir)
-    .then(head => {
+async function headChangeHandler(headDir) {
+  try {
+    const head = await fs.promises.readFile(headDir);
+    var headNode = tree.get('HEAD');
 
-      var headNode = tree.get('HEAD');
+    let currentChild = headNode.children[0];
+    if (currentChild) {
+      socket.removeEdge(headNode, currentChild);
+      headNode.clearChildren();
+    }
 
-      let currentChild = headNode.children[0];
-      if (currentChild) {
-        socket.removeEdge(headNode, currentChild);
-        headNode.clearChildren();
-      }
+    let sha = helper.getNodeWhereHeadPoints(head);
+    let node = tree.get(sha);
 
-      let sha = helper.getNodeWhereHeadPoints(head);
-      let node = tree.get(sha);
-
-      if (!node) {
-        node = new TreeNode(headDir, sha, C.BRANCH);
-        tree.set(sha, node);
-        socket.addNode(node);
-      }
-      headNode.addChild(node);
-      socket.addEdge(headNode, node);
-
-    })
-    .catch(watchErrorDebug);
+    if (!node) {
+      node = new TreeNode(headDir, sha, C.BRANCH);
+      tree.set(sha, node);
+      socket.addNode(node);
+    }
+    headNode.addChild(node);
+    socket.addEdge(headNode, node);
+  } catch (error) {
+    watchErrorDebug(error);
+  }
 }
 
 function objectsListener(dir) {
   fs.watch(`${dir}/objects/`, (eventType, filename) => {
-
     stageChange(objectsChanges, [`${dir}/objects/`, eventType, filename]);
   });
 }
 
-function objectsChangeHandler(dir, eventType, filename) {
+async function objectsChangeHandler(dir, eventType, filename) {
   watchDebug(watchCount++, 'objectsChangeHandler');
 
   if (!filename) {
-    watchErrorDebug('objectsChangeHandler : ', "didn't receive filename");
+    watchErrorDebug('objectsChangeHandler', "didn't receive filename");
   }
 
   if (filename.length !== 2) return;
 
-  return pfs.readFolder(dir + filename)
-    .then(files => {
-      const all = files.filter(file => file.toString().endsWith('.lock') == false)
-        .map(file => filename + file)
-        .map(sha => {
+  try {
+    const files = await fs.promises.readdir(`${dir}${filename}`);
+    const allPromises = files.filter(file => file.toString().endsWith('.lock') === false)
+      .map(file => filename + file)
+      .map(async sha => {
 
-          let node = tree.get(sha);
-          if (node) return;
+        if (tree.get(sha))
+          return;
 
-          watchDebug(watchCount++, 'new file : ', sha);
+        watchDebug(watchCount++, 'new file : ', sha);
 
-          node = new TreeNode(dir, sha);
-          tree.set(sha, node);
-          return node.explore()
-            .then(_ => {
+        const node = new TreeNode(dir, sha);
+        tree.set(sha, node);
+        const _ = await node.explore();
+        socket.addNode(node);
+        node.children.forEach(child => {
+          if (node.type === C.COMMIT || node.type === C.TREE) {
+            socket.addNode(child);
+          }
 
-              socket.addNode(node);
-
-              if (node.type === C.COMMIT || node.type === C.TREE) {
-                node.children.forEach(child => socket.addNode(child));
-              }
-
-              node.children.forEach(child => socket.addEdge(node, child));
-
-              return _;
-            });
+          socket.addEdge(node, child);
         });
 
-      return Promise.all(all);
-    })
-    .catch(watchErrorDebug);
+        return _;
+      });
+
+    await Promise.all(allPromises);
+  } catch (er) {
+    return watchErrorDebug(er);
+  }
 }
 
 function refsListener(dir) {
@@ -115,7 +111,7 @@ function refsListener(dir) {
 function refsChangeHandler(dir, eventType, filename) {
   watchDebug(watchCount++, 'refsChangeHandler');
 
-  return pfs.readFolder(`${dir}/refs/heads/`)
+  return fs.promises.readdir(`${dir}/refs/heads/`)
     .then(refFiles => {
       let foundRefs = [];
 
@@ -123,7 +119,7 @@ function refsChangeHandler(dir, eventType, filename) {
         .filter(file => file.toString().endsWith('.lock') == false)
         .map(file => {
 
-          return pfs.readFile(`${dir}/refs/heads/${file}`)
+          return fs.promises.readFile(`${dir}/refs/heads/${file}`)
             .then(data => data.toString().trim())
             .then(data => {
 
@@ -159,10 +155,10 @@ function refsChangeHandler(dir, eventType, filename) {
     })
     .then(foundRefs => {
 
-      return pfs.fileExists(`${dir}/packed-refs`)
+      return pfs.exists(`${dir}/packed-refs`)
         .then(exists => {
           if (!exists) return '';
-          return pfs.readFile(`${dir}/packed-refs`)
+          return fs.promises.readFile(`${dir}/packed-refs`)
         })
         .then(data => data.toString())
         .then(data => {
