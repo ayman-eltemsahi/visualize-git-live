@@ -1,3 +1,5 @@
+'use strict';
+
 const C = {
     COMMIT        :   1   /* 001 */ ,
     TREE          :   2   /* 010 */ ,

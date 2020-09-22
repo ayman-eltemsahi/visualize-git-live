@@ -1,3 +1,5 @@
+'use strict';
+
 const pfs = require('./pfs');
 const fs = require('fs');
 const TreeNode = require('./treenode');

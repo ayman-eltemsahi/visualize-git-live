@@ -1,3 +1,5 @@
+'use strict';
+
 // https://github.com/git/git/blob/master/Documentation/technical/pack-format.txt
 
 const byteReader = require('./util/byte-reader');
@@ -35,7 +37,7 @@ function readPackIdx(path) {
       for (let i = 0; i < ObjectsCount; i++) objects.push({});
 
       /*
-          A table of sorted 20-byte SHA-1 object names. These are packed together without offset values to 
+          A table of sorted 20-byte SHA-1 object names. These are packed together without offset values to
           reduce the cache footprint of the binary search for a specific object name.
       */
       for (let i = 0; i < ObjectsCount; i++) {
@@ -44,7 +46,7 @@ function readPackIdx(path) {
       }
 
       /*
-          A table of 4-byte CRC32 values of the packed object data. This is new in v2 so compressed data can be 
+          A table of 4-byte CRC32 values of the packed object data. This is new in v2 so compressed data can be
           copied directly from pack to pack during repacking without undetected data corruption.
       */
       for (let i = 0; i < ObjectsCount; i++) {
@@ -52,7 +54,7 @@ function readPackIdx(path) {
       }
 
       /*
-          A table of 4-byte offset values (in network byte order). These are usually 31-bit pack file offsets, but 
+          A table of 4-byte offset values (in network byte order). These are usually 31-bit pack file offsets, but
           large offsets are encoded as an index into the next table with the msbit set.
       */
       for (let i = 0; i < ObjectsCount; i++) {
@@ -112,7 +114,7 @@ function readPack(path, objects) {
           let byteLen = getObjectHeaderSize(data, offset + headerSize);
 
           readIndex += byteLen;
-          // n-byte offset interpreted as a negative offset from the type-byte 
+          // n-byte offset interpreted as a negative offset from the type-byte
           // of the header of the ofs-delta entry
           let ofs_delta = getOffsetDelta(data, offset + headerSize, byteLen);
 
@@ -130,7 +132,7 @@ function readPack(path, objects) {
       objects.forEach(obj => offsetIndexMap.set(obj.offset, obj));
 
       /*
-       * - parse the current objects, and if an object is diffed as well as its parent, 
+       * - parse the current objects, and if an object is diffed as well as its parent,
        *   then postpone it till the next loop until its base object has been restored.
        * - if each time, only half the objects are restored, then it will take O(2n) = O(n).
        */

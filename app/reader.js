@@ -1,3 +1,5 @@
+'use strict';
+
 const zlib = require('zlib');
 const gzip = zlib.createUnzip();
 const pfs = require('./pfs');
@@ -140,7 +142,7 @@ function readPacks(dir) {
     })
     .then(data => data.toString().split('\n'));
 
-  // sometimes, the pack is not registered in the info file               
+  // sometimes, the pack is not registered in the info file
   const files = pfs.readFolder(`${dir}/objects/pack`)
     .then(files => files.map(helper.removeExtension));
 

@@ -1,3 +1,5 @@
+'use strict';
+
 const pfs = require('./pfs');
 const zlib = require('zlib');
 const debug = require('debug');

@@ -1,3 +1,5 @@
+'use strict';
+
 const logDebug = require('debug')('log');
 const errorDebug = require('debug')('error');
 const C = require('../constants');

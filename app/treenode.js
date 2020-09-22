@@ -1,3 +1,5 @@
+'use strict';
+
 const tree = require('./tree');
 const pfs = require('./pfs');
 const path = require('path');
@@ -101,7 +103,7 @@ class TreeNode {
 
   /*
    * return the edges between this node and its children
-   * and call the children method recursively 
+   * and call the children method recursively
    */
   fillEdges(edgeTimeStamp, edges, selector) {
     if (this.lastRequestedEdge === edgeTimeStamp) return;

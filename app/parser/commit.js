@@ -1,3 +1,5 @@
+'use strict';
+
 var byteReader = require('../util/byte-reader');
 const C = require('../constants');
 

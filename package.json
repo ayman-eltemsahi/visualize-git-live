@@ -19,10 +19,10 @@
     "visualize"
   ],
   "dependencies": {
-    "express": "4.15.3",
+    "express": "4.17.1",
     "ip": "1.1.5",
     "opn": "5.2.0",
-    "websocket": "1.0.25"
+    "websocket": "1.0.32"
   },
   "author": "Ayman Mohamed",
   "license": "MIT",

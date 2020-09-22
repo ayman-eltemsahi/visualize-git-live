@@ -1,3 +1,5 @@
+'use strict';
+
 const fs = require("fs");
 const ip = require("ip");
 const http = require("http");

@@ -1,3 +1,5 @@
+'use strict';
+
 // TODO : move inside the iife
 var ws, network, nodesDataSet, edgesDataSet, nodes, edges, selectedNode, nodesMap = new Map();
 

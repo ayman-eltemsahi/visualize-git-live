@@ -1,3 +1,4 @@
+'use strict';
 
 function showReachable(level) {
   if (!selectedNode) return alert("please click on node first");
@@ -25,7 +26,7 @@ function showNotReachable(level) {
 }
 
 function recReachableFrom(nodeId, visited, level) {
-  // no level in input ==> get all 
+  // no level in input ==> get all
   if (typeof level !== 'number' || isNaN(level)) level = 1 << 30;
 
   // reached max level
@@ -67,7 +68,7 @@ function showNotWhoReach(level) {
 }
 
 function recWhoReach(nodeId, visited, level) {
-  // no level in input ==> get all 
+  // no level in input ==> get all
   if ((typeof level !== 'number') || isNaN(level)) level = 1 << 30;
 
   // reached max level

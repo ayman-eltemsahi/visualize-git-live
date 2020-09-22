@@ -1,3 +1,5 @@
+'use strict';
+
 const C = require('./constants');
 const config = require('../config');
 const path = require('path');

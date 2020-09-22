@@ -1,3 +1,5 @@
+'use strict';
+
 const WebSocketServer = require('websocket').server;
 const helper = require('./helper');
 let debug = require("debug")("socket");

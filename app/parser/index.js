@@ -1,3 +1,5 @@
+'use strict';
+
 const tree = require('./tree');
 const blob = require('./blob');
 const commit = require('./commit');
