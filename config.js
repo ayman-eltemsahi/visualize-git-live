@@ -3,5 +3,6 @@ module.exports = {
     maxKeepFileSize: 5 * 1024,
     maxNumberOfObjects: 2000,
     publicFolder: './public',
-    gitDirectory : './test'
+    gitDirectory : './test',
+    base_url: ''
 }
