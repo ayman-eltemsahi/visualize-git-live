@@ -79,19 +79,24 @@ async function objectsChangeHandler(dir, eventType, filename) {
         if (tree.get(sha))
           return;
 
+
         watchDebug(watchCount++, 'new file : ', sha);
 
         const node = new TreeNode(dir, sha);
         tree.set(sha, node);
         const _ = await node.explore();
+        if (node.type === C.TREE || node.type === C.BLOB) {
+          return _;
+        }
         socket.addNode(node);
 
         node.children.forEach(child => {
-          if (node.type === C.COMMIT || node.type === C.TREE) {
+          // console.log(child.type);
+          if (child.type === C.COMMIT) {
             socket.addNode(child);
+            socket.addEdge(node, child);
           }
 
-          socket.addEdge(node, child);
         });
 
         return _;

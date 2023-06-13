@@ -27,10 +27,18 @@ function drawVisJs(nodes, edges) {
     const options = {
         layout: {
             // randomSeed: 6333,
-            improvedLayout: improvedLayout
+            improvedLayout: improvedLayout,
+            hierarchical: {
+                enabled: true,
+                direction: 'RL',
+                sortMethod: 'directed',
+            }
         },
         height: '100%',
         width: '100%',
+        nodes: {
+            shape: 'box',
+        },
         physics: nodesDataSet.length < 100,
     };
 

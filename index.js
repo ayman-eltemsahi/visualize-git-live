@@ -1,7 +1,6 @@
 'use strict';
 
 const fs = require("fs");
-const ip = require("ip");
 const http = require("http");
 const debug = require("debug");
 const path = require("path");
@@ -111,6 +110,5 @@ const socket = require('./app/socket');
 socket.initialize(server);
 
 server.listen(config.portNumber, function () {
-  console.log(`Server listening ::: ${config.portNumber}`);
-  console.log("ip = " + ip.address());
+  console.log(`Server listening at http://localhost:${config.portNumber}`);
 });
